@@ -7,17 +7,20 @@ import android.os.*;
 import android.widget.*;
 import java.util.*;
 
-public class MainActivity extends Activity implements SensorEventListener
+public class MainActivity extends ListActivity implements SensorEventListener
 {
-
+	
+	private SensorManager manager;
+	private Sensor mSensor;
+	private ArrayList<MySensor> list = new ArrayList<>();
+	private List<Sensor> sensors = new ArrayList<>();
 	@Override
 	public void onSensorChanged(SensorEvent p1)
 	{
-		switch(p1.sensor.getType()){
-			case Sensor.TYPE_PROXIMITY:
-				tv.setText(String.format("Proximity sensor %1$.2f",p1.values[0]));
-				break;
-		}
+		Sensor temp = p1.sensor;
+		int index = sensors.indexOf(temp);
+		list.get(index).setData(p1.values);
+		((ArrayAdapter)getListView().getAdapter()).notifyDataSetChanged();
 	}
 
 	@Override
@@ -25,18 +28,19 @@ public class MainActivity extends Activity implements SensorEventListener
 	{
 		// TODO: Implement this method
 	}
-	
-	private TextView tv;
-	private SensorManager manager;
-	private Sensor proximity;
+
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-		tv = (TextView) findViewById(R.id.list);
 		manager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-		proximity = manager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+		sensors = manager.getSensorList(Sensor.TYPE_ALL);
+		for(Sensor s:sensors){
+			list.add(new MySensor(s.getName()));
+			manager.registerListener(this,s,SensorManager.SENSOR_DELAY_NORMAL);
+		}
+		setListAdapter(new ArrayAdapter(this,android.R.layout.simple_list_item_1,list));
     }
 
 	@Override
@@ -44,11 +48,10 @@ public class MainActivity extends Activity implements SensorEventListener
 	{
 		// TODO: Implement this method
 		super.onStart();
-		if(proximity == null){
-			tv.setText("Not found Proximity sensor");
-		}else{
-			manager.registerListener(this,proximity,SensorManager.SENSOR_DELAY_NORMAL);
+		for(Sensor s:sensors){
+			manager.registerListener(this,s,SensorManager.SENSOR_DELAY_NORMAL);
 		}
+		
 	}
 
 	@Override
@@ -56,9 +59,8 @@ public class MainActivity extends Activity implements SensorEventListener
 	{
 		// TODO: Implement this method
 		super.onPause();
-		if(proximity != null){
-			manager.unregisterListener(this);
-		}
+		manager.unregisterListener(this);
+		
 	}
 	
 	
